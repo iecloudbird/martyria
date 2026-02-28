@@ -1,24 +1,28 @@
 package api
 
 import (
+	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/martyria/martyria/internal/config"
 	"github.com/martyria/martyria/internal/db"
+	"github.com/martyria/martyria/internal/images"
 	"github.com/martyria/martyria/internal/models"
 )
 
 // Handler holds dependencies for all HTTP handlers.
 type Handler struct {
-	DB     *db.DB
-	Config *config.Config
+	DB       *db.DB
+	Config   *config.Config
+	ImageSvc *images.Service
 }
 
-func NewHandler(database *db.DB, cfg *config.Config) *Handler {
-	return &Handler{DB: database, Config: cfg}
+func NewHandler(database *db.DB, cfg *config.Config, imgSvc *images.Service) *Handler {
+	return &Handler{DB: database, Config: cfg, ImageSvc: imgSvc}
 }
 
 // --- Health ---
@@ -260,5 +264,88 @@ func (h *Handler) GetTopicQuotes(w http.ResponseWriter, r *http.Request) {
 		PerPage:    perPage,
 		Total:      total,
 		TotalPages: int64(db.TotalPages(total, perPage)),
+	})
+}
+
+// --- Images ---
+
+func (h *Handler) GetAuthorImages(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+
+	author, err := h.DB.GetAuthor(r.Context(), slug)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+	if author == nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "author not found"})
+		return
+	}
+
+	imgs, err := h.DB.GetAuthorImages(r.Context(), author.ID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	// Populate URLs
+	for i := range imgs {
+		if imgs[i].LocalPath != nil {
+			u := fmt.Sprintf("%s/data/images/%s", h.Config.BaseURL, *imgs[i].LocalPath)
+			imgs[i].FullURL = u
+		}
+		if imgs[i].ThumbnailPath != nil {
+			u := fmt.Sprintf("%s/data/images/%s", h.Config.BaseURL, *imgs[i].ThumbnailPath)
+			imgs[i].ThumbnailURL = u
+		}
+	}
+
+	writeJSON(w, http.StatusOK, imgs)
+}
+
+func (h *Handler) FetchAllImages(w http.ResponseWriter, r *http.Request) {
+	if h.ImageSvc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, models.ErrorResponse{Error: "image service not configured"})
+		return
+	}
+
+	go func() {
+		if err := h.ImageSvc.FetchAllAuthors(context.Background()); err != nil {
+			log.Printf("Batch image fetch error: %v", err)
+		}
+	}()
+
+	writeJSON(w, http.StatusAccepted, map[string]string{
+		"status":  "accepted",
+		"message": "Image fetch started for all authors without images",
+	})
+}
+
+func (h *Handler) FetchAuthorImages(w http.ResponseWriter, r *http.Request) {
+	slug := r.PathValue("slug")
+	if h.ImageSvc == nil {
+		writeJSON(w, http.StatusServiceUnavailable, models.ErrorResponse{Error: "image service not configured"})
+		return
+	}
+
+	author, err := h.DB.GetAuthor(r.Context(), slug)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+	if author == nil {
+		writeJSON(w, http.StatusNotFound, models.ErrorResponse{Error: "author not found"})
+		return
+	}
+
+	count, err := h.ImageSvc.FetchForAuthor(r.Context(), *author)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, models.ErrorResponse{Error: err.Error()})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"author":       slug,
+		"images_found": count,
 	})
 }

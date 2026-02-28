@@ -19,17 +19,20 @@ The API will be available at `http://localhost:8080`.
 1. **Prerequisites**: Go 1.24+, PostgreSQL 16+, Redis 7+
 
 2. **Database setup**:
+
 ```bash
 createdb martyria
 ```
 
 3. **Run**:
+
 ```bash
 cp .env.example .env
 go run ./cmd/martyria
 ```
 
 4. **Seed data**:
+
 ```bash
 psql martyria < seeds/001_topics.sql
 psql martyria < seeds/002_authors.sql
@@ -38,22 +41,23 @@ psql martyria < seeds/003_quotes.sql
 
 ## API Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/health` | Health check |
-| GET | `/v1/authors` | List all authors (paginated) |
-| GET | `/v1/authors/{slug}` | Get author by slug |
-| GET | `/v1/authors/{slug}/quotes` | Get quotes by author |
-| GET | `/v1/quotes` | List all quotes (paginated) |
-| GET | `/v1/quotes/random` | Get a random quote |
-| GET | `/v1/quotes/daily` | Quote of the day |
-| GET | `/v1/quotes/{id}` | Get specific quote |
-| GET | `/v1/topics` | List all topics |
-| GET | `/v1/topics/{slug}/quotes` | Get quotes by topic |
+| Method | Endpoint                    | Description                  |
+| ------ | --------------------------- | ---------------------------- |
+| GET    | `/health`                   | Health check                 |
+| GET    | `/v1/authors`               | List all authors (paginated) |
+| GET    | `/v1/authors/{slug}`        | Get author by slug           |
+| GET    | `/v1/authors/{slug}/quotes` | Get quotes by author         |
+| GET    | `/v1/quotes`                | List all quotes (paginated)  |
+| GET    | `/v1/quotes/random`         | Get a random quote           |
+| GET    | `/v1/quotes/daily`          | Quote of the day             |
+| GET    | `/v1/quotes/{id}`           | Get specific quote           |
+| GET    | `/v1/topics`                | List all topics              |
+| GET    | `/v1/topics/{slug}/quotes`  | Get quotes by topic          |
 
 ### Query Parameters
 
 **Filtering** (on `/v1/quotes` and `/v1/authors`):
+
 - `era` — apostolic, ante_nicene, nicene, post_nicene, medieval, modern, contemporary
 - `tradition` — pre_schism, orthodox, catholic, protestant
 - `topic` — topic slug (quotes only)
@@ -63,6 +67,7 @@ psql martyria < seeds/003_quotes.sql
 - `search` — full-text search (authors only)
 
 **Pagination**:
+
 - `page` — page number (default: 1)
 - `per_page` — items per page (default: 20, max: 100)
 
@@ -104,14 +109,14 @@ docker/                  — Dockerfile
 
 ## Authors Coverage
 
-| Tier | Era | Count | Examples |
-|------|-----|-------|---------|
-| 1 | Apostolic (50-150) | 4 | Clement, Ignatius, Polycarp |
-| 2 | Ante-Nicene (100-325) | 6 | Irenaeus, Athanasius, Tertullian |
-| 3 | Nicene & Post-Nicene (325-800) | 11 | Chrysostom, Augustine, Basil, Maximus |
-| 4 | Medieval (800-1500) | 4 | Palamas, Aquinas, Francis |
-| 5 | Early Modern (1700-1900) | 4 | Seraphim of Sarov, Theophan the Recluse |
-| 6 | Modern Saints & Elders | 11 | Paisios, Porphyrios, Silouan, Cleopa |
+| Tier | Era                            | Count | Examples                                |
+| ---- | ------------------------------ | ----- | --------------------------------------- |
+| 1    | Apostolic (50-150)             | 4     | Clement, Ignatius, Polycarp             |
+| 2    | Ante-Nicene (100-325)          | 6     | Irenaeus, Athanasius, Tertullian        |
+| 3    | Nicene & Post-Nicene (325-800) | 11    | Chrysostom, Augustine, Basil, Maximus   |
+| 4    | Medieval (800-1500)            | 4     | Palamas, Aquinas, Francis               |
+| 5    | Early Modern (1700-1900)       | 4     | Seraphim of Sarov, Theophan the Recluse |
+| 6    | Modern Saints & Elders         | 11    | Paisios, Porphyrios, Silouan, Cleopa    |
 
 ## Tech Stack
 
@@ -126,4 +131,4 @@ MIT
 
 ---
 
-*Glory to God for all things.* — St. John Chrysostom
+_Glory to God for all things._ — St. John Chrysostom

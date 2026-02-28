@@ -336,6 +336,36 @@ func (d *DB) GetPrimaryImage(ctx context.Context, authorID int64) (*models.Image
 	return img, nil
 }
 
+// GetAuthorImages returns all images for a given author.
+func (d *DB) GetAuthorImages(ctx context.Context, authorID int64) ([]models.Image, error) {
+	rows, err := d.Pool.Query(ctx, `
+		SELECT id, author_id, source_type, source_url, source_attribution, source_license,
+			style, width, height, mime_type, local_path, thumbnail_path,
+			is_ai_generated, is_primary, quality_score, created_at
+		FROM images
+		WHERE author_id = $1
+		ORDER BY is_primary DESC, quality_score DESC
+	`, authorID)
+	if err != nil {
+		return nil, fmt.Errorf("get author images: %w", err)
+	}
+	defer rows.Close()
+
+	var images []models.Image
+	for rows.Next() {
+		img := models.Image{}
+		if err := rows.Scan(
+			&img.ID, &img.AuthorID, &img.SourceType, &img.SourceURL, &img.SourceAttribution, &img.SourceLicense,
+			&img.Style, &img.Width, &img.Height, &img.MimeType, &img.LocalPath, &img.ThumbnailPath,
+			&img.IsAIGenerated, &img.IsPrimary, &img.QualityScore, &img.CreatedAt,
+		); err != nil {
+			return nil, fmt.Errorf("scan image: %w", err)
+		}
+		images = append(images, img)
+	}
+	return images, nil
+}
+
 // --- Helpers ---
 
 func buildQuoteWhere(f models.QuoteFilter) (string, []interface{}) {

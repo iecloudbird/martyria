@@ -26,6 +26,11 @@ func NewRouter(h *Handler) http.Handler {
 	mux.HandleFunc("GET /v1/topics", h.ListTopics)
 	mux.HandleFunc("GET /v1/topics/{slug}/quotes", h.GetTopicQuotes)
 
+	// Images
+	mux.HandleFunc("GET /v1/authors/{slug}/images", h.GetAuthorImages)
+	mux.HandleFunc("POST /v1/images/fetch", h.FetchAllImages)
+	mux.HandleFunc("POST /v1/images/fetch/{slug}", h.FetchAuthorImages)
+
 	// Wrap with middleware chain
 	var handler http.Handler = mux
 	handler = CORSMiddleware(handler)
