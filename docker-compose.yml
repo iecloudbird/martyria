@@ -1,0 +1,72 @@
+services:
+  # Martyria API
+  martyria:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: martyria-api
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      DATABASE_URL: postgres://martyria:martyria@postgres:5432/martyria?sslmode=disable
+      REDIS_URL: redis://redis:6379
+      IMAGE_DIR: /app/data/images
+      BASE_URL: http://localhost:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - image_data:/app/data/images
+    restart: unless-stopped
+    networks:
+      - martyria
+
+  # PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: martyria-postgres
+    environment:
+      POSTGRES_DB: martyria
+      POSTGRES_USER: martyria
+      POSTGRES_PASSWORD: martyria
+    ports:
+      - "5432:5432"
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U martyria"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - martyria
+
+  # Redis (caching & rate limiting)
+  redis:
+    image: redis:7-alpine
+    container_name: martyria-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - martyria
+
+volumes:
+  pg_data:
+  redis_data:
+  image_data:
+
+networks:
+  martyria:
+    driver: bridge
